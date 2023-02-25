@@ -1,5 +1,7 @@
 package Particles.System;
 
+import ADT.Vector;
+import ADT.Vector3D;
 import Particles.Graphics.Renderer;
 import Particles.Graphics.Renderer3D;
 import org.tinspin.index.kdtree.KDTree;
@@ -11,6 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import static Particles.Graphics.Renderer3D.UNIT_SIZE;
 import static Particles.Settings.NUM_PARTICLES;
 
 public class ParticleSystem implements System {
@@ -27,7 +30,7 @@ public class ParticleSystem implements System {
     @Override
     public void start() {
         ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-        service.scheduleAtFixedRate(this::loop, 2000,17, TimeUnit.MILLISECONDS);
+        service.scheduleAtFixedRate(this::loop, 2000,25, TimeUnit.MILLISECONDS);
     }
 
     private void loop() {
@@ -45,9 +48,11 @@ public class ParticleSystem implements System {
     @Override
     public void init() {
         renderer.init();
-        particles.add(new Particle.Massive());
-        IntStream.range(0,NUM_PARTICLES).
-                mapToObj(Particle::new).
-                forEach(particles::add);
+
+        particles.add(new Particle.Massive(Vector.zero3D(), Vector.zero3D()));
+        // particles.add(new Particle.Massive(new Vector3D(0, UNIT_SIZE * .1, UNIT_SIZE * .1), Vector.zero3D()));
+        // particles.add(new Particle.Massive(new Vector3D(0, UNIT_SIZE *-.1, UNIT_SIZE *-.1), Vector.zero3D()));
+
+        IntStream.range(0,NUM_PARTICLES).forEach(i -> particles.add(new Particle()));
     }
 }

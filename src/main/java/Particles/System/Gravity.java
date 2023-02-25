@@ -14,16 +14,16 @@ import static java.lang.Double.MIN_VALUE;
 import static java.lang.Math.*;
 
 public class Gravity {
-    public static final double G = 9.8;
+    public static final double G = 19.8;
 
     // set the acceleration based on gravity
     public static ODE evaluateList(Particle p1, List<Particle> bodies) {
         return (t,y) -> {
-            Vector acc = Vector.zero3D();
-            for (Particle p2 : bodies) {
-                acc = eval(p1, acc, p2);
-            }
-            return ((Rate) acc);
+            Vector[] acc = new Vector[]{Vector.zero3D()};
+            bodies.parallelStream().forEach(p2 -> {
+                acc[0] = eval(p1, acc[0], p2);
+            });
+            return ((Rate) acc[0]);
         };
     }
 

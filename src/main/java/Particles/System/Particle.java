@@ -1,11 +1,12 @@
 package Particles.System;
 
-import ADT.Vector;
-import ADT.Vector2D;
-import ADT.Vector3D;
+import ADT.*;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
+import java.util.Iterator;
+import java.util.Queue;
 
 import static Particles.Graphics.MouseInput.mouseSensitivity;
 import static Particles.Graphics.Renderer3D.*;
@@ -15,45 +16,38 @@ import static java.lang.Math.*;
 
 public class Particle {
     private Vector position, velocity;
-    private final int id;
-    private final double mass;
+    protected double mass;
     private static final double INITIAL_POSITION_RADIUS = UNIT_SIZE * 0.4;
+    protected final DoublyLinkedList trajectory = new DoublyLinkedList(50);
 
-    public Particle(int id) {
-        this.id = id;
-        this.position = this.randomInitialPosition();
-//        this.velocity = Vector.zero3D();
-        this.velocity = this.randomInitialVelocity();
-        this.mass = RANDOM_PROVIDER.nextDouble(10,15);
+    public Particle() {
+        this.setPosition(this.randomInitialPosition());
+        this.velocity = this.randomInitialVelocity().multiply(.1);
+        this.mass = RANDOM_PROVIDER.nextDouble(10,30);
+    }
+
+    public Particle(Vector position, Vector velocity, double mass) {
+        this.setPosition(position);
+        this.velocity = velocity;
+        this.mass = mass;
     }
 
     protected Vector randomInitialPosition(){
-        double x = RANDOM_PROVIDER.nextGaussian(0, .2);
-        double y = RANDOM_PROVIDER.nextGaussian(0, .1);
-        double z = RANDOM_PROVIDER.nextGaussian(0, .2);
+        double x = RANDOM_PROVIDER.nextGaussian(0, .1);
+        double y = RANDOM_PROVIDER.nextGaussian(0, .3);
+        double z = RANDOM_PROVIDER.nextGaussian(0, .3);
         if (x == 0 && y == 0 && z == 0) return randomInitialPosition();
         double sq = 1 / (sqrt(pow(x,2)  + pow(y,2) + pow(z,2)));
-        double rad = RANDOM_PROVIDER.nextDouble( INITIAL_POSITION_RADIUS * 0.2, INITIAL_POSITION_RADIUS * 0.25);
+        double rad = RANDOM_PROVIDER.nextDouble( INITIAL_POSITION_RADIUS * 0.4, INITIAL_POSITION_RADIUS * 0.5);
         double r = sq * rad;
         return new Vector3D(x*r, y*r, z*r);
     }
 
     protected Vector randomInitialVelocity() {
-        Vector v = this.getPosition().multiply(-1);
+        Vector v = this.getPosition().multiply(-.1);
         double norm = sqrt((v.x() * v.x()) + (v.y() * v.y()));
         double d = norm * 1e-2;
-        return new Vector3D(getPosition().x() + (v.y() * d),  getPosition().y() - (v.x() * d), 0);
-    }
-
-    protected Particle() {
-        this.id = -1;
-        this.position = Vector.zero3D();
-        this.velocity = Vector.zero3D();
-        this.mass = 5e7;
-    }
-
-    public int getId() {
-        return id;
+        return new Vector3D(getPosition().x() + (v.y() * d),  0, getPosition().y() - (v.x() * d));
     }
 
     public Vector getPosition() {
@@ -62,6 +56,7 @@ public class Particle {
 
     public void setPosition(Vector position) {
         this.position = position;
+        this.trajectory.addNode(position);
     }
 
     public Vector getVelocity() {
@@ -78,12 +73,27 @@ public class Particle {
     }
 
     public void render(Graphics2D g) {
+        renderTrajectory(g);
+        g.setColor(PARTICLE_COLOR);
         g.fill(planetShape(getPosition()));
+    }
+
+    private void renderTrajectory(Graphics2D g) {
+        Iterator<Node> iterator = this.trajectory.iterator();
+        Vector2D a = convertPosition(this.trajectory.get().getItem());
+        int i = 1;
+        while(iterator.hasNext()) {
+            Vector2D b = convertPosition(iterator.next().getItem());
+            float alpha = min(1, (float) (1. / (this.trajectory.capacity-1) * i++));
+            g.setColor(new Color(1, 1, 1, alpha));
+            g.draw(new Line2D.Double(a.x(), a.y(), b.x(), b.y()));
+            a = b;
+        }
     }
 
     protected Ellipse2D.Double planetShape(Vector position) {
         Vector2D p = convertPosition(position);
-        double r = PARTICLE_RADIUS * (mass * 0.1) * scale;
+        double r = PARTICLE_RADIUS * (mass * 0.05) * scale;
         return new Ellipse2D.Double(p.x() - r, p.y() - r, r * 2, r * 2);
     }
 
@@ -101,8 +111,8 @@ public class Particle {
 
 
     public static class Massive extends Particle {
-        public Massive() {
-            super();
+        public Massive(Vector pos, Vector vel) {
+            super(pos, vel, 5e3);
         }
 
         @Override
@@ -113,9 +123,24 @@ public class Particle {
         }
 
         public void render(Graphics2D g) {
+            this.renderTrajectory(g);
             g.setColor(Color.RED);
             g.fill(planetShape(getPosition()));
             g.setColor(PARTICLE_COLOR);
+        }
+
+        private void renderTrajectory(Graphics2D g) {
+            g.setStroke(new BasicStroke(0.3f));
+            Iterator<Node> iterator = this.trajectory.iterator();
+            Vector2D a = convertPosition(this.trajectory.get().getItem());
+            int i = 1;
+            while(iterator.hasNext()) {
+                Vector2D b = convertPosition(iterator.next().getItem());
+                float alpha = min(1, (float) (1. / (this.trajectory.capacity-1) * i++));
+                g.setColor(new Color(1, 0, 0, alpha));
+                g.draw(new Line2D.Double(a.x(), a.y(), b.x(), b.y()));
+                a = b;
+            }
         }
     }
 
